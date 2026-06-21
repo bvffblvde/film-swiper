@@ -150,7 +150,7 @@ export default function HomePage() {
   );
 
   return (
-    <Box style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+    <Box style={{ minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
       {isDesktop ? (
         <Box style={{ display: 'grid', gridTemplateColumns: '1fr 460px', gap: '80px', width: '100%', maxWidth: '960px', alignItems: 'center' }}>
           <Stack gap={0}>
