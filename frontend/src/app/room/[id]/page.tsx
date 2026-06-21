@@ -76,23 +76,24 @@ export default function RoomPage() {
 
     socket.on('loading-movies', () => setPhase('loading'));
 
-    socket.on('movies-loaded', ({ movies: m }: { movies: Movie[] }) => {
+    socket.on('movies-loaded', ({ movies: m, append }: { movies: Movie[]; append?: boolean }) => {
       setMovies(m);
-      setCurrentIndex(0);
+      if (!append) setCurrentIndex(0); // Only reset on initial session load, not on load-more
       setPhase('swiping');
     });
 
     socket.on('match', (event: MatchEvent) => {
+      // Guard against old backend that may not send allMatches
+      const allMatches = event.allMatches ?? (event.movie ? [event.movie] : []);
       setMatchEvent(event);
-      setMatchedMovies(event.allMatches);
+      setMatchedMovies(allMatches);
 
-      if (event.isComplete) {
+      if (event.isComplete ?? false) {
         setPhase('matched');
       } else {
-        // Intermediate match — toast only, no blocking modal
         notifications.show({
-          title: event.movie.title,
-          message: event.requiredMatches > 1
+          title: event.movie?.title ?? 'Совпадение!',
+          message: (event.requiredMatches ?? 1) > 1
             ? `Совпадение ${event.matchNumber}/${event.requiredMatches}`
             : 'Совпадение!',
           color: 'violet',

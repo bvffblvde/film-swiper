@@ -220,7 +220,7 @@ export function registerHandlers(io: Server, socket: Socket) {
 
       room.movies = movies;
       room.currentPage = 1;
-      io.to(roomId).emit('movies-loaded', { movies });
+      io.to(roomId).emit('movies-loaded', { movies, append: false });
     } catch (err) {
       console.error('Failed to load movies:', err);
       io.to(roomId).emit('movies-error', { message: 'Не удалось загрузить фильмы. Проверьте TMDB_API_KEY.' });
@@ -271,7 +271,7 @@ export function registerHandlers(io: Server, socket: Socket) {
 
       room.movies.push(...newMovies);
       room.currentPage = nextPage;
-      io.to(roomId).emit('movies-loaded', { movies: room.movies });
+      io.to(roomId).emit('movies-loaded', { movies: room.movies, append: true });
     } catch (err) {
       console.error('Failed to load more movies:', err);
     }
