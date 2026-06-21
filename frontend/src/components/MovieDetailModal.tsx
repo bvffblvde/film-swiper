@@ -1,6 +1,7 @@
 'use client';
 
-import { Badge, Box, Button, Group, Modal, ScrollArea, Stack, Text, Title } from '@mantine/core';
+import { Badge, Box, Button, Group, Modal, Stack, Text, Title } from '@mantine/core';
+import { useMediaQuery } from '@mantine/hooks';
 import { StarIcon, XIcon, UsersIcon, FilmStripIcon } from '@phosphor-icons/react';
 import Image from 'next/image';
 import { Movie } from '@/lib/types';
@@ -14,6 +15,8 @@ interface Props {
 }
 
 export function MovieDetailModal({ movie, opened, onClose }: Props) {
+  const isMobile = useMediaQuery('(max-width: 600px)');
+
   if (!movie) return null;
 
   return (
@@ -21,16 +24,24 @@ export function MovieDetailModal({ movie, opened, onClose }: Props) {
       opened={opened}
       onClose={onClose}
       withCloseButton={false}
-      centered
+      centered={!isMobile}
+      fullScreen={isMobile}
       size="lg"
-      radius={20}
+      radius={isMobile ? 0 : 20}
       overlayProps={{ blur: 4, opacity: 0.85 }}
       styles={{
-        content: { background: '#1A1B1E', border: '1px solid #2C2E33', overflow: 'hidden' },
-        body: { padding: 0 },
+        content: {
+          background: '#1A1B1E',
+          border: isMobile ? 'none' : '1px solid #2C2E33',
+          display: 'flex',
+          flexDirection: 'column',
+          maxHeight: isMobile ? '100dvh' : '90vh',
+        },
+        body: { padding: 0, flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' },
       }}
     >
-      <Box style={{ position: 'relative', height: '320px', background: '#25262b', flexShrink: 0 }}>
+      {/* Poster — fixed height, doesn't scroll */}
+      <Box style={{ position: 'relative', height: isMobile ? '42vh' : '300px', background: '#25262b', flexShrink: 0 }}>
         {movie.posterPath ? (
           <Image
             src={`${POSTER_BASE}${movie.posterPath}`}
@@ -43,7 +54,7 @@ export function MovieDetailModal({ movie, opened, onClose }: Props) {
             <FilmStripIcon size={48} color="#5c5f66" weight="duotone" />
           </Box>
         )}
-        <Box style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, #1A1B1E 0%, rgba(26,27,30,0.4) 60%, transparent 100%)' }} />
+        <Box style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, #1A1B1E 0%, rgba(26,27,30,0.3) 60%, transparent 100%)' }} />
 
         <Button
           variant="filled"
@@ -58,13 +69,19 @@ export function MovieDetailModal({ movie, opened, onClose }: Props) {
         </Button>
       </Box>
 
-      <ScrollArea style={{ maxHeight: '55vh' }}>
-        <Stack gap={16} p={24} pt={16}>
+      {/* Scrollable content — native overflow for iOS Safari compat */}
+      <Box
+        style={{
+          flex: 1,
+          overflowY: 'auto',
+          WebkitOverflowScrolling: 'touch',
+        } as React.CSSProperties}
+      >
+        <Stack gap={16} p={24} pt={16} pb={32}>
           <Box>
-            <Title order={2} style={{ color: '#fff', fontSize: '24px', marginBottom: '10px', lineHeight: 1.2 }}>
+            <Title order={2} style={{ color: '#fff', fontSize: '22px', marginBottom: '10px', lineHeight: 1.2 }}>
               {movie.title}
             </Title>
-
             <Group gap={10} align="center" wrap="wrap">
               <Group gap={5} align="center">
                 <StarIcon size={16} weight="fill" color="#FAB005" />
@@ -105,7 +122,7 @@ export function MovieDetailModal({ movie, opened, onClose }: Props) {
             </Box>
           )}
         </Stack>
-      </ScrollArea>
+      </Box>
     </Modal>
   );
 }

@@ -2,8 +2,8 @@
 
 import { useCallback, useState } from 'react';
 import { motion, useMotionValue, useTransform, AnimatePresence } from 'framer-motion';
-import { Box, Text } from '@mantine/core';
-import { HeartIcon, XIcon } from '@phosphor-icons/react';
+import { Box, Loader, Stack, Text } from '@mantine/core';
+import { HeartIcon, InfoIcon, XIcon } from '@phosphor-icons/react';
 import { Movie } from '@/lib/types';
 import { MovieCard } from './MovieCard';
 
@@ -12,11 +12,13 @@ interface Props {
   currentIndex: number;
   onSwipe: (movie: Movie, direction: 'left' | 'right') => void;
   onExhausted: () => void;
+  onInfo?: (movie: Movie) => void;
 }
 
 function DraggableCard({
   movie,
   onSwipe,
+  onInfo,
   isTop,
   zIndex,
   scale,
@@ -24,6 +26,7 @@ function DraggableCard({
 }: {
   movie: Movie;
   onSwipe: (movie: Movie, direction: 'left' | 'right') => void;
+  onInfo?: (movie: Movie) => void;
   isTop: boolean;
   zIndex: number;
   scale: number;
@@ -114,11 +117,37 @@ function DraggableCard({
       )}
 
       <MovieCard movie={movie} />
+
+      {/* Info button — only on top card, stops pointer events so drag doesn't trigger */}
+      {isTop && onInfo && (
+        <Box
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={() => onInfo(movie)}
+          style={{
+            position: 'absolute',
+            bottom: '48%',
+            right: '12px',
+            zIndex: 20,
+            width: '36px',
+            height: '36px',
+            borderRadius: '50%',
+            background: 'rgba(0,0,0,0.55)',
+            backdropFilter: 'blur(6px)',
+            border: '1px solid rgba(255,255,255,0.18)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+          }}
+        >
+          <InfoIcon size={18} color="#fff" weight="bold" />
+        </Box>
+      )}
     </motion.div>
   );
 }
 
-export function SwipeStack({ movies, currentIndex, onSwipe, onExhausted }: Props) {
+export function SwipeStack({ movies, currentIndex, onSwipe, onExhausted, onInfo }: Props) {
   const [leaving, setLeaving] = useState<{ movie: Movie; direction: 'left' | 'right' } | null>(null);
 
   const visibleMovies = movies.slice(currentIndex, currentIndex + 3);
@@ -165,6 +194,7 @@ export function SwipeStack({ movies, currentIndex, onSwipe, onExhausted }: Props
               <DraggableCard
                 movie={movie}
                 onSwipe={handleSwipe}
+                onInfo={onInfo}
                 isTop={isTop && !leaving}
                 zIndex={visibleMovies.length - i}
                 scale={1 - i * 0.04}
@@ -176,16 +206,15 @@ export function SwipeStack({ movies, currentIndex, onSwipe, onExhausted }: Props
       </AnimatePresence>
 
       {visibleMovies.length === 0 && (
-        <Box
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            height: '100%',
-          }}
+        <Stack
+          align="center"
+          justify="center"
+          gap={12}
+          style={{ height: '100%' }}
         >
-          <Text c="dimmed">Загружаем ещё фильмы...</Text>
-        </Box>
+          <Loader size={32} color="violet" />
+          <Text c="dimmed" size="sm">Загружаем ещё фильмы...</Text>
+        </Stack>
       )}
     </Box>
   );

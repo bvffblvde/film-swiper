@@ -34,6 +34,7 @@ import { RoomLobby } from '@/components/RoomLobby';
 import { SwipeStack } from '@/components/SwipeStack';
 import { MatchModal } from '@/components/MatchModal';
 import { MatchesGallery } from '@/components/MatchesGallery';
+import { MovieDetailModal } from '@/components/MovieDetailModal';
 import { PreferenceWizard } from '@/components/PreferenceWizard';
 
 type Phase = 'nickname' | 'lobby' | 'wizard' | 'wizard-waiting' | 'loading' | 'swiping' | 'matched' | 'ended';
@@ -51,6 +52,7 @@ export default function RoomPage() {
   const [matchEvent, setMatchEvent] = useState<MatchEvent | null>(null);
   const [matchedMovies, setMatchedMovies] = useState<Movie[]>([]);
   const [showGallery, setShowGallery] = useState(false);
+  const [infoMovie, setInfoMovie] = useState<Movie | null>(null);
   const [lobbySettings, setLobbySettings] = useState({ matchThreshold: 0, requiredMatches: 1, genreId: '', minRating: 0 });
   const socketIdRef = useRef<string>('');
   const loadingMoreRef = useRef(false); // guards against double-emit when both button and SwipeStack trigger exhaustion
@@ -428,7 +430,7 @@ export default function RoomPage() {
           <Box style={{ flex: 1, display: 'flex', minHeight: 0 }}>
             <Box style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px' }}>
               <Box style={{ width: '380px', height: '580px', position: 'relative' }}>
-                <SwipeStack movies={movies} currentIndex={currentIndex} onSwipe={handleSwipe} onExhausted={handleExhausted} />
+                <SwipeStack movies={movies} currentIndex={currentIndex} onSwipe={handleSwipe} onExhausted={handleExhausted} onInfo={setInfoMovie} />
               </Box>
               <Group gap={48} mt={32}>
                 {dislikeBtn}
@@ -476,6 +478,8 @@ export default function RoomPage() {
             onClose={() => setShowGallery(false)}
             onFinish={handleFinish}
           />
+
+          <MovieDetailModal movie={infoMovie} opened={infoMovie !== null} onClose={() => setInfoMovie(null)} />
         </Box>
       );
     }
@@ -502,7 +506,7 @@ export default function RoomPage() {
         </Group>
 
         <Box style={{ flex: 1, position: 'relative', minHeight: 0 }}>
-          <SwipeStack movies={movies} currentIndex={currentIndex} onSwipe={handleSwipe} onExhausted={handleExhausted} />
+          <SwipeStack movies={movies} currentIndex={currentIndex} onSwipe={handleSwipe} onExhausted={handleExhausted} onInfo={setInfoMovie} />
         </Box>
 
         <Group justify="center" gap={32} mt={20} style={{ flexShrink: 0 }}>
@@ -528,6 +532,8 @@ export default function RoomPage() {
           onClose={() => setShowGallery(false)}
           onFinish={handleFinish}
         />
+
+        <MovieDetailModal movie={infoMovie} opened={infoMovie !== null} onClose={() => setInfoMovie(null)} />
       </Box>
     );
   }
