@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e \"const p = require\\('@phosphor-icons/react'\\); const keys = Object.keys\\(p\\); console.log\\('Total exports:', keys.length\\); console.log\\('Sample \\(last 10\\):', keys.slice\\(-10\\).join\\(', '\\)\\);\")"
+    ]
+  }
+}
