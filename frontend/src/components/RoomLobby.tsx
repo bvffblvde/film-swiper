@@ -40,9 +40,9 @@ interface Props {
   onStart: () => void;
   onStartWizard: () => void;
   onModeChange: (mode: 'classic' | 'preference') => void;
-  onSettingsChange: (settings: { matchThreshold: number; filters: { genreId?: number; minRating?: number } }) => void;
-  settings: { matchThreshold: number; genreId: string; minRating: number };
-  onSettingsLocal: (s: { matchThreshold: number; genreId: string; minRating: number }) => void;
+  onSettingsChange: (settings: { matchThreshold: number; requiredMatches: number; filters: { genreId?: number; minRating?: number } }) => void;
+  settings: { matchThreshold: number; requiredMatches: number; genreId: string; minRating: number };
+  onSettingsLocal: (s: { matchThreshold: number; requiredMatches: number; genreId: string; minRating: number }) => void;
 }
 
 export function RoomLobby({
@@ -73,6 +73,7 @@ export function RoomLobby({
     onSettingsLocal(next);
     onSettingsChange({
       matchThreshold: next.matchThreshold,
+      requiredMatches: next.requiredMatches,
       filters: {
         genreId: next.genreId ? Number(next.genreId) : undefined,
         minRating: next.minRating > 0 ? next.minRating : undefined,
@@ -188,6 +189,15 @@ export function RoomLobby({
             styles={inputStyles}
           />
         </Box>
+        <Box>
+          <Text size="xs" c="dimmed" mb={8}>Матчей до конца сессии</Text>
+          <NumberInput
+            min={1} max={20}
+            value={settings.requiredMatches}
+            onChange={(v) => handleChange('requiredMatches', Number(v) || 1)}
+            styles={inputStyles}
+          />
+        </Box>
       </Stack>
     </Box>
   ) : (
@@ -236,7 +246,7 @@ export function RoomLobby({
   );
 
   return (
-    <Box style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <Box style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
       <Box style={{
         padding: isDesktop ? '20px 40px' : '20px',
         borderBottom: '1px solid #2C2E33',

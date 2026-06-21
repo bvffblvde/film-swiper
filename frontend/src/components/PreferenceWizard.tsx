@@ -405,89 +405,96 @@ export function PreferenceWizard({ nickname, onComplete }: Props) {
                 const sel = selectedMovies.some((m) => m.id === movie.id);
                 const disabled = !sel && selectedMovies.length >= 5;
                 return (
+                  // Outer: defines 2:3 aspect ratio via padding-bottom trick (Safari-safe)
                   <Box
                     key={movie.id}
                     onClick={() => !disabled && toggleMovie(movie)}
                     style={{
                       position: 'relative',
-                      borderRadius: '10px',
+                      width: '100%',
+                      paddingBottom: '150%',
+                      height: 0,
                       overflow: 'hidden',
-                      aspectRatio: '2/3',
+                      borderRadius: '10px',
                       background: '#25262b',
                       cursor: disabled ? 'not-allowed' : 'pointer',
                       border: sel ? '2px solid #845ef7' : '2px solid transparent',
                       opacity: disabled ? 0.4 : 1,
                       transition: 'border-color 0.15s',
+                      boxSizing: 'border-box',
                     }}
                   >
-                    {movie.posterPath ? (
-                      <Image
-                        src={`${IMG}${movie.posterPath}`}
-                        alt={movie.title}
-                        fill
-                        style={{ objectFit: 'cover' }}
-                      />
-                    ) : (
-                      <Box style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <FilmStripIcon size={24} color="#5c5f66" />
-                      </Box>
-                    )}
-                    <Box
-                      style={{
-                        position: 'absolute',
-                        inset: 0,
-                        background: sel
-                          ? 'rgba(132,94,247,0.5)'
-                          : 'linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 60%)',
-                      }}
-                    />
-                    {sel && (
+                    {/* Inner: fills the area created by padding-bottom */}
+                    <Box style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
+                      {movie.posterPath ? (
+                        <Image
+                          src={`${IMG}${movie.posterPath}`}
+                          alt={movie.title}
+                          fill
+                          style={{ objectFit: 'cover' }}
+                        />
+                      ) : (
+                        <Box style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <FilmStripIcon size={24} color="#5c5f66" />
+                        </Box>
+                      )}
                       <Box
                         style={{
                           position: 'absolute',
-                          top: '50%',
-                          left: '50%',
-                          transform: 'translate(-50%,-50%)',
-                          background: '#845ef7',
-                          borderRadius: '50%',
-                          width: '28px',
-                          height: '28px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
+                          inset: 0,
+                          background: sel
+                            ? 'rgba(132,94,247,0.5)'
+                            : 'linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 60%)',
+                        }}
+                      />
+                      {sel && (
+                        <Box
+                          style={{
+                            position: 'absolute',
+                            top: '50%',
+                            left: '50%',
+                            transform: 'translate(-50%,-50%)',
+                            background: '#845ef7',
+                            borderRadius: '50%',
+                            width: '28px',
+                            height: '28px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          <CheckIcon size={16} weight="bold" color="#fff" />
+                        </Box>
+                      )}
+                      <Text
+                        style={{
+                          position: 'absolute',
+                          bottom: '6px',
+                          left: '6px',
+                          right: '6px',
+                          fontSize: '10px',
+                          color: '#fff',
+                          fontWeight: 600,
+                          lineHeight: 1.2,
                         }}
                       >
-                        <CheckIcon size={16} weight="bold" color="#fff" />
-                      </Box>
-                    )}
-                    <Text
-                      style={{
-                        position: 'absolute',
-                        bottom: '6px',
-                        left: '6px',
-                        right: '6px',
-                        fontSize: '10px',
-                        color: '#fff',
-                        fontWeight: 600,
-                        lineHeight: 1.2,
-                      }}
-                    >
-                      {movie.title}
-                    </Text>
-                    <Badge
-                      leftSection={<StarIcon size={9} weight="fill" />}
-                      style={{
-                        position: 'absolute',
-                        top: '6px',
-                        right: '6px',
-                        fontSize: '10px',
-                        padding: '2px 6px',
-                        background: 'rgba(0,0,0,0.75)',
-                        color: '#FAB005',
-                      }}
-                    >
-                      {movie.rating.toFixed(1)}
-                    </Badge>
+                        {movie.title}
+                      </Text>
+                      <Badge
+                        leftSection={<StarIcon size={9} weight="fill" />}
+                        style={{
+                          position: 'absolute',
+                          top: '6px',
+                          right: '6px',
+                          fontSize: '10px',
+                          padding: '2px 6px',
+                          background: 'rgba(0,0,0,0.75)',
+                          color: '#FAB005',
+                        }}
+                      >
+                        {movie.rating.toFixed(1)}
+                      </Badge>
+                    </Box>
                   </Box>
                 );
               })}
@@ -598,7 +605,7 @@ function WizardShell({
   return (
     <Box
       style={{
-        minHeight: '100vh',
+        minHeight: '100dvh',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',

@@ -53,6 +53,7 @@ export interface Room {
   participants: Participant[];
   status: 'lobby' | 'swiping' | 'ended';
   matchThreshold: number;
+  requiredMatches: number;
   filters: {
     genreId?: number;
     minRating?: number;
@@ -60,4 +61,13 @@ export interface Room {
   mode: 'classic' | 'preference';
   wizardStarted: boolean;
   preferencesSubmitted: string[];
+  matchedMovies: Movie[];
+}
+
+export interface MatchEvent {
+  movie: Movie;
+  matchNumber: number;
+  requiredMatches: number;
+  allMatches: Movie[];
+  isComplete: boolean;
 }

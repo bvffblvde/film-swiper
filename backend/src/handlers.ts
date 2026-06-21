@@ -111,6 +111,25 @@ export function registerHandlers(io: Server, socket: Socket) {
 
       addParticipant(room, socket.id, nickname);
       socket.join(roomId);
+
+      // Transfer preferences from a previous disconnected session with the same nickname
+      const oldPrefEntry = Object.entries(room.preferences).find(([sid, pref]) => {
+        return pref.nickname === nickname.trim() &&
+          !room.participants.some((p) => p.socketId === sid && p.socketId !== socket.id);
+      });
+      if (oldPrefEntry) {
+        room.preferences[socket.id] = oldPrefEntry[1];
+        delete room.preferences[oldPrefEntry[0]];
+      }
+
+      // Restore host if reconnecting with the original host's nickname and host is gone
+      const hostStillPresent = room.participants.some(
+        (p) => p.socketId !== socket.id && p.socketId === room.hostSocketId
+      );
+      if (!hostStillPresent && nickname.trim() === room.hostNickname) {
+        room.hostSocketId = socket.id;
+      }
+
       callback({ success: true, room: getPublicRoom(room) });
       io.to(roomId).emit('room-updated', getPublicRoom(room));
     }
@@ -121,15 +140,18 @@ export function registerHandlers(io: Server, socket: Socket) {
     ({
       roomId,
       matchThreshold,
+      requiredMatches,
       filters,
     }: {
       roomId: string;
       matchThreshold: number;
+      requiredMatches?: number;
       filters: { genreId?: number; minRating?: number };
     }) => {
       const room = getRoom(roomId);
       if (!room || room.hostSocketId !== socket.id) return;
       room.matchThreshold = matchThreshold;
+      if (requiredMatches !== undefined) room.requiredMatches = requiredMatches;
       room.filters = filters;
       io.to(roomId).emit('room-updated', getPublicRoom(room));
     }
@@ -215,9 +237,18 @@ export function registerHandlers(io: Server, socket: Socket) {
       const isMatch = recordLike(room, movieId, socket.id);
       if (isMatch) {
         const movie = room.movies.find((m) => m.id === movieId);
-        if (movie) {
-          room.matchedMovie = movie;
-          io.to(roomId).emit('match', { movie });
+        // Guard against emitting the same movie twice (e.g. multiple rapid votes)
+        if (movie && !room.matchedMovies.some((m) => m.id === movieId)) {
+          room.matchedMovies.push(movie);
+          const matchNumber = room.matchedMovies.length;
+          const isComplete = matchNumber >= room.requiredMatches;
+          io.to(roomId).emit('match', {
+            movie,
+            matchNumber,
+            requiredMatches: room.requiredMatches,
+            allMatches: room.matchedMovies,
+            isComplete,
+          });
         }
       }
     }
@@ -250,7 +281,7 @@ export function registerHandlers(io: Server, socket: Socket) {
     const room = getRoom(roomId);
     if (!room || room.hostSocketId !== socket.id) return;
     room.status = 'ended';
-    io.to(roomId).emit('session-ended');
+    io.to(roomId).emit('session-ended', { allMatches: room.matchedMovies });
     deleteRoom(roomId);
   });
 
@@ -258,6 +289,7 @@ export function registerHandlers(io: Server, socket: Socket) {
     const room = findRoomBySocket(socket.id);
     if (!room) return;
 
+    const wasHost = room.hostSocketId === socket.id;
     removeParticipant(room, socket.id);
 
     if (room.participants.length === 0) {
@@ -265,8 +297,9 @@ export function registerHandlers(io: Server, socket: Socket) {
       return;
     }
 
-    if (room.hostSocketId === socket.id) {
+    if (wasHost) {
       room.hostSocketId = room.participants[0].socketId;
+      room.hostNickname = room.participants[0].nickname;
     }
 
     if (room.status === 'lobby') {

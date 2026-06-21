@@ -50,9 +50,11 @@ export interface AggregatedFilters {
 export interface Room {
   id: string;
   hostSocketId: string;
+  hostNickname: string;
   participants: Participant[];
   status: 'lobby' | 'swiping' | 'ended';
   matchThreshold: number;
+  requiredMatches: number;
   filters: { genreId?: number; minRating?: number };
   mode: 'classic' | 'preference';
   wizardStarted: boolean;
@@ -61,7 +63,7 @@ export interface Room {
   movies: Movie[];
   currentPage: number;
   likes: Record<number, Set<string>>;
-  matchedMovie: Movie | null;
+  matchedMovies: Movie[];
 }
 
 const rooms = new Map<string, Room>();
@@ -80,9 +82,11 @@ export function createRoom(hostSocketId: string, nickname: string): Room {
   const room: Room = {
     id,
     hostSocketId,
+    hostNickname: nickname,
     participants: [{ socketId: hostSocketId, nickname }],
     status: 'lobby',
     matchThreshold: 0,
+    requiredMatches: 1,
     filters: {},
     mode: 'classic',
     wizardStarted: false,
@@ -90,7 +94,7 @@ export function createRoom(hostSocketId: string, nickname: string): Room {
     movies: [],
     currentPage: 1,
     likes: {},
-    matchedMovie: null,
+    matchedMovies: [],
   };
   rooms.set(id, room);
   return room;
@@ -122,7 +126,8 @@ export function removeParticipant(room: Room, socketId: string): void {
   for (const movieId in room.likes) {
     room.likes[Number(movieId)].delete(socketId);
   }
-  delete room.preferences[socketId];
+  // Preferences are intentionally kept so they survive brief reconnects.
+  // They are cleaned up when the room is deleted.
 }
 
 export function recordLike(room: Room, movieId: number, socketId: string): boolean {
@@ -177,15 +182,27 @@ export function aggregatePreferences(
 }
 
 export function getPublicRoom(room: Room) {
+  // Match submitted preferences to current participants by socketId OR by nickname
+  // (nickname fallback handles socket reconnection where the ID changes)
+  const submittedSids = new Set(Object.keys(room.preferences));
+  const preferencesSubmitted = room.participants
+    .filter((p) =>
+      submittedSids.has(p.socketId) ||
+      Object.values(room.preferences).some((pref) => pref.nickname === p.nickname)
+    )
+    .map((p) => p.socketId);
+
   return {
     id: room.id,
     hostSocketId: room.hostSocketId,
     participants: room.participants,
     status: room.status,
     matchThreshold: room.matchThreshold,
+    requiredMatches: room.requiredMatches,
     filters: room.filters,
     mode: room.mode,
     wizardStarted: room.wizardStarted,
-    preferencesSubmitted: Object.keys(room.preferences),
+    preferencesSubmitted,
+    matchedMovies: room.matchedMovies,
   };
 }

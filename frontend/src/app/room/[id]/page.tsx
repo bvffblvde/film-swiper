@@ -25,13 +25,15 @@ import {
   FilmStripIcon,
   HeartIcon,
   SparkleIcon,
+  TrophyIcon,
   XIcon,
 } from '@phosphor-icons/react';
 import { getSocket } from '@/lib/socket';
-import { Movie, Room, UserPreferences } from '@/lib/types';
+import { MatchEvent, Movie, Room, UserPreferences } from '@/lib/types';
 import { RoomLobby } from '@/components/RoomLobby';
 import { SwipeStack } from '@/components/SwipeStack';
 import { MatchModal } from '@/components/MatchModal';
+import { MatchesGallery } from '@/components/MatchesGallery';
 import { PreferenceWizard } from '@/components/PreferenceWizard';
 
 type Phase = 'nickname' | 'lobby' | 'wizard' | 'wizard-waiting' | 'loading' | 'swiping' | 'matched' | 'ended';
@@ -46,8 +48,10 @@ export default function RoomPage() {
   const [room, setRoom] = useState<Room | null>(null);
   const [movies, setMovies] = useState<Movie[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [matchedMovie, setMatchedMovie] = useState<Movie | null>(null);
-  const [lobbySettings, setLobbySettings] = useState({ matchThreshold: 0, genreId: '', minRating: 0 });
+  const [matchEvent, setMatchEvent] = useState<MatchEvent | null>(null);
+  const [matchedMovies, setMatchedMovies] = useState<Movie[]>([]);
+  const [showGallery, setShowGallery] = useState(false);
+  const [lobbySettings, setLobbySettings] = useState({ matchThreshold: 0, requiredMatches: 1, genreId: '', minRating: 0 });
   const socketIdRef = useRef<string>('');
 
   useEffect(() => {
@@ -64,9 +68,8 @@ export default function RoomPage() {
 
     socket.on('room-updated', (updatedRoom: Room) => {
       setRoom(updatedRoom);
-      // Auto-transition to wizard when host starts it
       setPhase((prev) => {
-        if (updatedRoom.wizardStarted && (prev === 'lobby')) return 'wizard';
+        if (updatedRoom.wizardStarted && prev === 'lobby') return 'wizard';
         return prev;
       });
     });
@@ -79,8 +82,9 @@ export default function RoomPage() {
       setPhase('swiping');
     });
 
-    socket.on('match', ({ movie }: { movie: Movie }) => {
-      setMatchedMovie(movie);
+    socket.on('match', (event: MatchEvent) => {
+      setMatchEvent(event);
+      setMatchedMovies(event.allMatches);
       setPhase('matched');
     });
 
@@ -127,7 +131,6 @@ export default function RoomPage() {
         }
         socketIdRef.current = socket.id || '';
         setRoom(r || null);
-        // If wizard already started when joining, jump straight to wizard
         if (r?.wizardStarted) {
           setPhase('wizard');
         } else {
@@ -151,7 +154,6 @@ export default function RoomPage() {
 
   function handleStartWizard() {
     getSocket().emit('wizard-started', { roomId: id });
-    // Host also enters the wizard
     setPhase('wizard');
   }
 
@@ -159,7 +161,7 @@ export default function RoomPage() {
     getSocket().emit('set-room-mode', { roomId: id, mode });
   }
 
-  function handleSettingsChange(settings: { matchThreshold: number; filters: { genreId?: number; minRating?: number } }) {
+  function handleSettingsChange(settings: { matchThreshold: number; requiredMatches: number; filters: { genreId?: number; minRating?: number } }) {
     getSocket().emit('update-settings', { roomId: id, ...settings });
   }
 
@@ -186,12 +188,23 @@ export default function RoomPage() {
     if (isHost) getSocket().emit('end-session', { roomId: id });
   }
 
+  function handleMatchContinue() {
+    setPhase('swiping');
+    setMatchEvent(null);
+  }
+
+  function handleMatchViewGallery() {
+    setShowGallery(true);
+    setPhase('swiping');
+    setMatchEvent(null);
+  }
+
   const isHost = room?.hostSocketId === socketIdRef.current;
 
   // ── Nickname ──────────────────────────────────────────────────────
   if (phase === 'nickname') {
     return (
-      <Center style={{ minHeight: '100vh', padding: '20px' }}>
+      <Center style={{ minHeight: '100dvh', padding: '20px' }}>
         <Stack gap={0} style={{ width: '100%', maxWidth: '380px' }}>
           <Group gap={10} mb={40} justify="center">
             <FilmStripIcon size={32} weight="duotone" color="#845ef7" />
@@ -254,7 +267,7 @@ export default function RoomPage() {
     const totalCount = room.participants.length;
 
     return (
-      <Center style={{ minHeight: '100vh', padding: '20px' }}>
+      <Center style={{ minHeight: '100dvh', padding: '20px' }}>
         <Stack gap={0} style={{ width: '100%', maxWidth: '420px' }}>
           <Group gap={10} mb={32} justify="center">
             <FilmStripIcon size={28} weight="duotone" color="#845ef7" />
@@ -315,7 +328,7 @@ export default function RoomPage() {
   // ── Loading ───────────────────────────────────────────────────────
   if (phase === 'loading') {
     return (
-      <Center style={{ minHeight: '100vh' }}>
+      <Center style={{ minHeight: '100dvh' }}>
         <Stack align="center" gap={16}>
           <Loader size={48} color="violet" />
           <Text c="dimmed" size="lg">Загружаем фильмы...</Text>
@@ -327,7 +340,7 @@ export default function RoomPage() {
   // ── Ended ─────────────────────────────────────────────────────────
   if (phase === 'ended') {
     return (
-      <Center style={{ minHeight: '100vh' }}>
+      <Center style={{ minHeight: '100dvh' }}>
         <Stack align="center" gap={16}>
           <Text fw={700} style={{ fontSize: '24px', color: '#fff' }}>Сессия завершена</Text>
           <Text c="dimmed">Возвращаемся на главную...</Text>
@@ -336,7 +349,7 @@ export default function RoomPage() {
     );
   }
 
-  // ── Swipe ─────────────────────────────────────────────────────────
+  // ── Swipe + Matched ───────────────────────────────────────────────
   if (phase === 'swiping' || phase === 'matched') {
     const dislikeBtn = (
       <Button
@@ -358,17 +371,36 @@ export default function RoomPage() {
       </Button>
     );
 
+    const matchesBadge = matchedMovies.length > 0 && (
+      <Button
+        variant="light"
+        color="yellow"
+        size="xs"
+        radius="xl"
+        leftSection={<TrophyIcon size={13} weight="fill" />}
+        onClick={() => setShowGallery(true)}
+        style={{ fontSize: '12px' }}
+      >
+        {matchedMovies.length}
+        {room?.requiredMatches && room.requiredMatches > 1 ? `/${room.requiredMatches}` : ''}{' '}
+        матч{matchedMovies.length === 1 ? '' : matchedMovies.length < 5 ? 'а' : 'ей'}
+      </Button>
+    );
+
     if (isDesktop) {
       return (
-        <Box style={{ height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <Box style={{ height: '100dvh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           <Box style={{ padding: '16px 32px', borderBottom: '1px solid #2C2E33', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <Group gap={10}>
               <FilmStripIcon size={26} weight="duotone" color="#845ef7" />
               <Text fw={700} style={{ color: '#fff', fontSize: '18px' }}>FilmSwiper</Text>
             </Group>
-            <Badge variant="outline" color="violet" style={{ letterSpacing: '2px', fontSize: '13px' }}>
-              {id}
-            </Badge>
+            <Group gap={12}>
+              {matchesBadge}
+              <Badge variant="outline" color="violet" style={{ letterSpacing: '2px', fontSize: '13px' }}>
+                {id}
+              </Badge>
+            </Group>
           </Box>
 
           <Box style={{ flex: 1, display: 'flex', minHeight: 0 }}>
@@ -404,26 +436,46 @@ export default function RoomPage() {
             </Box>
           </Box>
 
-          <MatchModal movie={matchedMovie} opened={phase === 'matched'} onFinish={handleFinish} />
+          <MatchModal
+            movie={matchEvent?.movie ?? null}
+            opened={phase === 'matched'}
+            matchNumber={matchEvent?.matchNumber ?? 1}
+            requiredMatches={matchEvent?.requiredMatches ?? 1}
+            isHost={isHost}
+            isComplete={matchEvent?.isComplete ?? false}
+            onContinue={handleMatchContinue}
+            onViewGallery={handleMatchViewGallery}
+          />
+
+          <MatchesGallery
+            matches={matchedMovies}
+            isHost={isHost}
+            opened={showGallery}
+            onClose={() => setShowGallery(false)}
+            onFinish={handleFinish}
+          />
         </Box>
       );
     }
 
     return (
-      <Box style={{ height: '100vh', display: 'flex', flexDirection: 'column', padding: '16px' }}>
+      <Box style={{ height: '100dvh', display: 'flex', flexDirection: 'column', padding: '16px' }}>
         <Group justify="space-between" align="center" mb={16} style={{ flexShrink: 0 }}>
           <Group gap={8}>
             <FilmStripIcon size={22} weight="duotone" color="#845ef7" />
             <Text fw={700} style={{ color: '#fff', fontSize: '16px' }}>FilmSwiper</Text>
           </Group>
-          <Group gap={6}>
-            {room?.participants.map((p) => (
-              <Box
-                key={p.socketId}
-                title={p.nickname}
-                style={{ width: '8px', height: '8px', borderRadius: '50%', background: p.socketId === room.hostSocketId ? '#845ef7' : '#51CF66' }}
-              />
-            ))}
+          <Group gap={8}>
+            {matchesBadge}
+            <Group gap={6}>
+              {room?.participants.map((p) => (
+                <Box
+                  key={p.socketId}
+                  title={p.nickname}
+                  style={{ width: '8px', height: '8px', borderRadius: '50%', background: p.socketId === room.hostSocketId ? '#845ef7' : '#51CF66' }}
+                />
+              ))}
+            </Group>
           </Group>
         </Group>
 
@@ -436,7 +488,24 @@ export default function RoomPage() {
           {likeBtn}
         </Group>
 
-        <MatchModal movie={matchedMovie} opened={phase === 'matched'} onFinish={handleFinish} />
+        <MatchModal
+          movie={matchEvent?.movie ?? null}
+          opened={phase === 'matched'}
+          matchNumber={matchEvent?.matchNumber ?? 1}
+          requiredMatches={matchEvent?.requiredMatches ?? 1}
+          isHost={isHost}
+          isComplete={matchEvent?.isComplete ?? false}
+          onContinue={handleMatchContinue}
+          onViewGallery={handleMatchViewGallery}
+        />
+
+        <MatchesGallery
+          matches={matchedMovies}
+          isHost={isHost}
+          opened={showGallery}
+          onClose={() => setShowGallery(false)}
+          onFinish={handleFinish}
+        />
       </Box>
     );
   }
