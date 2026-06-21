@@ -85,7 +85,20 @@ export default function RoomPage() {
     socket.on('match', (event: MatchEvent) => {
       setMatchEvent(event);
       setMatchedMovies(event.allMatches);
-      setPhase('matched');
+
+      if (event.isComplete) {
+        setPhase('matched');
+      } else {
+        // Intermediate match — toast only, no blocking modal
+        notifications.show({
+          title: event.movie.title,
+          message: event.requiredMatches > 1
+            ? `Совпадение ${event.matchNumber}/${event.requiredMatches}`
+            : 'Совпадение!',
+          color: 'violet',
+          autoClose: 3500,
+        });
+      }
     });
 
     socket.on('session-ended', () => {

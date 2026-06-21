@@ -218,6 +218,21 @@ export function RoomLobby({
     </Box>
   );
 
+  const preferenceHostSettingsPanel = isHost && (
+    <Box style={{ background: '#1A1B1E', border: '1px solid #2C2E33', borderRadius: '16px', padding: '20px' }}>
+      <Text size="sm" c="dimmed" fw={500} mb={16}>Настройки сессии</Text>
+      <Box>
+        <Text size="xs" c="dimmed" mb={8}>Матчей до конца сессии</Text>
+        <NumberInput
+          min={1} max={20}
+          value={settings.requiredMatches}
+          onChange={(v) => handleChange('requiredMatches', Number(v) || 1)}
+          styles={inputStyles}
+        />
+      </Box>
+    </Box>
+  );
+
   const startButton = isHost && (
     room.mode === 'preference' ? (
       <Button
@@ -240,7 +255,7 @@ export function RoomLobby({
   const rightContent = (
     <Stack gap={16}>
       {modeToggle}
-      {room.mode === 'classic' ? classicSettingsPanel : (isHost ? null : preferenceGuestPanel)}
+      {room.mode === 'classic' ? classicSettingsPanel : (isHost ? preferenceHostSettingsPanel : preferenceGuestPanel)}
       {startButton}
     </Stack>
   );
