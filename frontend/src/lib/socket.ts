@@ -6,6 +6,7 @@ export function getSocket(): Socket {
   if (!socket) {
     socket = io(process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000', {
       autoConnect: false,
+      transports: ['websocket'],
     });
   }
   return socket;
