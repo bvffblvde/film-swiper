@@ -53,6 +53,7 @@ export default function RoomPage() {
   const [showGallery, setShowGallery] = useState(false);
   const [lobbySettings, setLobbySettings] = useState({ matchThreshold: 0, requiredMatches: 1, genreId: '', minRating: 0 });
   const socketIdRef = useRef<string>('');
+  const loadingMoreRef = useRef(false); // guards against double-emit when both button and SwipeStack trigger exhaustion
 
   useEffect(() => {
     const storedNickname = sessionStorage.getItem('fs_nickname');
@@ -77,6 +78,7 @@ export default function RoomPage() {
     socket.on('loading-movies', () => setPhase('loading'));
 
     socket.on('movies-loaded', ({ movies: m, append }: { movies: Movie[]; append?: boolean }) => {
+      loadingMoreRef.current = false;
       setMovies(m);
       if (!append) setCurrentIndex(0); // Only reset on initial session load, not on load-more
       setPhase('swiping');
@@ -187,11 +189,17 @@ export default function RoomPage() {
   function handleSwipe(movie: Movie, direction: 'left' | 'right') {
     getSocket().emit('swipe', { roomId: id, movieId: movie.id, direction });
     setCurrentIndex((i) => i + 1);
+    // Check exhaustion here so button clicks (which bypass SwipeStack) also trigger load-more
+    if (currentIndex + 1 >= movies.length) {
+      handleExhausted();
+    }
   }
 
   function handleExhausted() {
+    if (loadingMoreRef.current) return; // prevent double-emit (buttons + SwipeStack drag both call this)
     const isHost = room?.hostSocketId === socketIdRef.current;
     if (isHost) {
+      loadingMoreRef.current = true;
       getSocket().emit('load-more-movies', { roomId: id });
       setPhase('loading');
     }
