@@ -22,6 +22,7 @@ interface TmdbMovie {
   poster_path: string | null;
   vote_average: number;
   genre_ids: number[];
+  original_language: string;
 }
 
 interface TmdbMovieDetail {
@@ -77,13 +78,19 @@ export async function fetchMovieCredits(movieId: number): Promise<string[]> {
 export async function fetchMovies(
   page: number,
   genreId?: number,
-  minRating?: number
+  minRating?: number,
+  yearFrom?: number,
+  yearTo?: number,
+  excludeLanguages?: string[]
 ): Promise<{ movies: TmdbMovie[]; totalPages: number }> {
   let path: string;
-  if (genreId || minRating) {
-    const params = new URLSearchParams({ page: String(page), sort_by: 'popularity.desc' });
+  const hasFilter = genreId || minRating || yearFrom || yearTo;
+  if (hasFilter) {
+    const params = new URLSearchParams({ page: String(page), sort_by: 'popularity.desc', 'vote_count.gte': '30' });
     if (genreId) params.set('with_genres', String(genreId));
     if (minRating) params.set('vote_average.gte', String(minRating));
+    if (yearFrom) params.set('primary_release_date.gte', `${yearFrom}-01-01`);
+    if (yearTo) params.set('primary_release_date.lte', `${yearTo}-12-31`);
     path = `/discover/movie?${params}`;
   } else {
     path = `/movie/popular?page=${page}`;
@@ -93,7 +100,11 @@ export async function fetchMovies(
     console.error('TMDB unexpected response:', JSON.stringify(data).slice(0, 300));
     return { movies: [], totalPages: 0 };
   }
-  return { movies: data.results, totalPages: data.total_pages };
+  const excluded = new Set(excludeLanguages ?? []);
+  const movies = excluded.size > 0
+    ? data.results.filter((m) => !excluded.has(m.original_language))
+    : data.results;
+  return { movies, totalPages: data.total_pages };
 }
 
 export async function fetchMoviesWithFilters(

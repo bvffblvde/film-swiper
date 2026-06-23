@@ -1,0 +1,35 @@
+:root {
+  // Backgrounds
+  --c-bg: #101113;
+  --c-surface: #1a1b1e;
+  --c-elevated: #25262b;
+
+  // Borders
+  --c-border: #2c2e33;
+  --c-border-subtle: #373a40;
+
+  // Text
+  --c-text: #ffffff;
+  --c-text-muted: #c1c2c5;
+  --c-text-dim: #909296;
+
+  // Accent
+  --c-violet: #845ef7;
+  --c-violet-light: #9775fa;
+  --c-yellow: #fab005;
+  --c-green: #51cf66;
+  --c-red: #ff6b6b;
+
+  // Border radius
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 16px;
+  --r-xl: 20px;
+  --r-2xl: 24px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}

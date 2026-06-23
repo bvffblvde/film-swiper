@@ -57,6 +57,9 @@ export interface Room {
   filters: {
     genreId?: number;
     minRating?: number;
+    yearFrom?: number;
+    yearTo?: number;
+    excludedCountries?: string[];
   };
   mode: 'classic' | 'preference';
   wizardStarted: boolean;

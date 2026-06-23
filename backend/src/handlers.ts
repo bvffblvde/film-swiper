@@ -20,6 +20,46 @@ import {
   fetchMovieWithCredits,
 } from './tmdb';
 
+const COUNTRY_LANGUAGES: Record<string, string[]> = {
+  IN: ['hi', 'ta', 'te', 'ml', 'kn', 'mr'],
+  JP: ['ja'],
+  KR: ['ko'],
+  CN: ['zh'],
+  TW: ['zh'],
+  HK: ['zh'],
+  RU: ['ru'],
+  TR: ['tr'],
+  IR: ['fa'],
+  TH: ['th'],
+  PL: ['pl'],
+  SE: ['sv'],
+  DK: ['da'],
+  NO: ['no', 'nb'],
+  FI: ['fi'],
+  HU: ['hu'],
+  CZ: ['cs'],
+  RO: ['ro'],
+  GR: ['el'],
+  UA: ['uk'],
+  NL: ['nl'],
+  PT: ['pt'],
+  BR: ['pt'],
+};
+
+function getExcludeLanguages(excludedCountries?: string[]): string[] {
+  if (!excludedCountries || excludedCountries.length === 0) return [];
+  return [...new Set(excludedCountries.flatMap((c) => COUNTRY_LANGUAGES[c] ?? []))];
+}
+
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
 async function buildMoviesFromRaw(
   raw: { id: number; title: string; overview: string; poster_path: string | null; vote_average: number; genre_ids: number[] }[],
   genreMap: Record<number, string>
@@ -40,10 +80,14 @@ async function buildMoviesFromRaw(
 async function loadClassicMovies(
   page: number,
   genreId?: number,
-  minRating?: number
+  minRating?: number,
+  yearFrom?: number,
+  yearTo?: number,
+  excludedCountries?: string[]
 ): Promise<Movie[]> {
+  const excludeLanguages = getExcludeLanguages(excludedCountries);
   const [{ movies: raw }, genreMap] = await Promise.all([
-    fetchMovies(page, genreId, minRating),
+    fetchMovies(page, genreId, minRating, yearFrom, yearTo, excludeLanguages),
     fetchGenres(),
   ]);
   return buildMoviesFromRaw(raw, genreMap);
@@ -146,7 +190,7 @@ export function registerHandlers(io: Server, socket: Socket) {
       roomId: string;
       matchThreshold: number;
       requiredMatches?: number;
-      filters: { genreId?: number; minRating?: number };
+      filters: { genreId?: number; minRating?: number; yearFrom?: number; yearTo?: number; excludedCountries?: string[] };
     }) => {
       const room = getRoom(roomId);
       if (!room || room.hostSocketId !== socket.id) return;
@@ -215,12 +259,20 @@ export function registerHandlers(io: Server, socket: Socket) {
           agg.minRating
         );
       } else {
-        movies = await loadClassicMovies(1, room.filters.genreId, room.filters.minRating);
+        movies = await loadClassicMovies(
+          1,
+          room.filters.genreId,
+          room.filters.minRating,
+          room.filters.yearFrom,
+          room.filters.yearTo,
+          room.filters.excludedCountries
+        );
       }
 
-      room.movies = movies;
+      const shuffled = shuffle(movies);
+      room.movies = shuffled;
       room.currentPage = 1;
-      io.to(roomId).emit('movies-loaded', { movies, append: false });
+      io.to(roomId).emit('movies-loaded', { movies: shuffled, append: false });
     } catch (err) {
       console.error('Failed to load movies:', err);
       io.to(roomId).emit('movies-error', { message: 'Не удалось загрузить фильмы. Проверьте TMDB_API_KEY.' });
@@ -266,10 +318,17 @@ export function registerHandlers(io: Server, socket: Socket) {
         const agg = room.aggregatedFilters;
         newMovies = await loadPreferenceMovies(agg.genreIds, nextPage, [], agg.yearFrom, agg.yearTo, agg.minRating);
       } else {
-        newMovies = await loadClassicMovies(nextPage, room.filters.genreId, room.filters.minRating);
+        newMovies = await loadClassicMovies(
+          nextPage,
+          room.filters.genreId,
+          room.filters.minRating,
+          room.filters.yearFrom,
+          room.filters.yearTo,
+          room.filters.excludedCountries
+        );
       }
 
-      room.movies.push(...newMovies);
+      room.movies.push(...shuffle(newMovies));
       room.currentPage = nextPage;
       io.to(roomId).emit('movies-loaded', { movies: room.movies, append: true });
     } catch (err) {

@@ -1,0 +1,49 @@
+.root {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.inner {
+  width: 100%;
+  max-width: 380px;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 40px;
+}
+
+.appName {
+  font-size: 24px;
+  color: var(--c-text);
+  font-weight: 700;
+}
+
+.card {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-xl);
+  padding: 28px;
+}
+
+.cardTitle {
+  font-weight: 600;
+  color: var(--c-text);
+  margin-bottom: 6px;
+  font-size: 18px;
+}
+
+.roomCode {
+  color: var(--c-violet);
+  letter-spacing: 2px;
+}
+
+.submitBtn {
+  height: 48px;
+}

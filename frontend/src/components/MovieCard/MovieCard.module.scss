@@ -1,0 +1,69 @@
+.card {
+  width: 100%;
+  height: 100%;
+  border-radius: var(--r-xl);
+  overflow: hidden;
+  position: relative;
+  user-select: none;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  cursor: grab;
+}
+
+.poster {
+  position: relative;
+  height: 55%;
+  background: var(--c-elevated);
+}
+
+.posterGradient {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 120px;
+  background: linear-gradient(to top, var(--c-surface), transparent);
+  pointer-events: none;
+}
+
+.ratingBadge {
+  position: absolute !important;
+  top: 12px;
+  right: 12px;
+  background: rgba(0, 0, 0, 0.75) !important;
+  color: var(--c-yellow) !important;
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(250, 176, 5, 0.3) !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  padding: 4px 10px !important;
+}
+
+.content {
+  padding: 16px 20px 20px;
+  height: 45%;
+  overflow-y: auto;
+}
+
+.title {
+  font-size: 20px !important;
+  color: var(--c-text);
+  line-height: 1.2;
+  margin-bottom: 10px;
+}
+
+.overview {
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.actorsLabel {
+  font-size: 11px;
+  color: #5c5f66;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}

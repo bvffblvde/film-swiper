@@ -1,0 +1,1 @@
+export { MatchesGallery } from './MatchesGallery';

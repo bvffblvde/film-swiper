@@ -1,0 +1,114 @@
+// Desktop layout
+.root {
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.header {
+  padding: 16px 32px;
+  border-bottom: 1px solid var(--c-border);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logoText {
+  color: var(--c-text);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+}
+
+.stackWrapper {
+  width: 380px;
+  height: 580px;
+  position: relative;
+}
+
+.sidebar {
+  width: 260px;
+  border-left: 1px solid var(--c-border);
+  padding: 28px 24px;
+  flex-shrink: 0;
+  overflow-y: auto;
+}
+
+.sidebarLabel {
+  font-size: 11px;
+  color: var(--c-text-dim);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 20px;
+}
+
+.participant {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--c-text-muted);
+  flex: 1;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+// Mobile layout
+.rootMobile {
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+}
+
+.headerMobile {
+  flex-shrink: 0;
+  margin-bottom: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logoMobile {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.logoTextMobile {
+  color: var(--c-text);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.stackArea {
+  flex: 1;
+  position: relative;
+  min-height: 0;
+}

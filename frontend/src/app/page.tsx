@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Box,
   Button,
@@ -29,8 +29,10 @@ import {
   SmileyWinkIcon,
   GlobeIcon,
   ConfettiIcon,
+  PlayCircleIcon,
 } from '@phosphor-icons/react';
 import { notifications } from '@mantine/notifications';
+import { IntroVideoModal } from '@/components/IntroVideoModal';
 
 const HOW_IT_WORKS = [
   { icon: UsersIcon, text: 'Создайте комнату и позовите друзей' },
@@ -45,6 +47,14 @@ export default function HomePage() {
   const [joinCode, setJoinCode] = useState('');
   const [loading, setLoading] = useState<'create' | 'join' | null>(null);
   const [createdRoom, setCreatedRoom] = useState<{ id: string; url: string } | null>(null);
+  const [videoOpen, setVideoOpen] = useState(false);
+
+  useEffect(() => {
+    if (!localStorage.getItem('fs_intro_seen')) {
+      setVideoOpen(true);
+      localStorage.setItem('fs_intro_seen', '1');
+    }
+  }, []);
 
   function getOrConnectSocket() {
     const socket = getSocket();
@@ -173,7 +183,17 @@ export default function HomePage() {
                 </Group>
               ))}
             </Stack>
-            <Group gap={8} mt={48} align="center">
+            <Box mt={36}>
+              <Button
+                variant="subtle"
+                color="violet"
+                leftSection={<PlayCircleIcon size={20} weight="duotone" />}
+                onClick={() => setVideoOpen(true)}
+              >
+                Как это работает?
+              </Button>
+            </Box>
+            <Group gap={8} mt={16} align="center">
               <SmileyWinkIcon size={16} color="#5c5f66" />
               <Text size="xs" c="dimmed">Данные фильмов предоставлены TMDB</Text>
               <GlobeIcon size={14} color="#5c5f66" />
@@ -183,15 +203,28 @@ export default function HomePage() {
         </Box>
       ) : (
         <Stack gap={0} style={{ width: '100%', maxWidth: '420px' }}>
-          <Group gap={10} mb={40} justify="center">
-            <FilmStripIcon size={34} weight="duotone" color="#845ef7" />
-            <Title order={1} style={{ fontSize: '26px', color: '#fff', letterSpacing: '-0.5px' }}>
-              FilmSwiper
-            </Title>
-          </Group>
+          <Stack gap={12} mb={40} align="center">
+            <Group gap={10} justify="center">
+              <FilmStripIcon size={34} weight="duotone" color="#845ef7" />
+              <Title order={1} style={{ fontSize: '26px', color: '#fff', letterSpacing: '-0.5px' }}>
+                FilmSwiper
+              </Title>
+            </Group>
+            <Button
+              variant="subtle"
+              color="violet"
+              size="xs"
+              leftSection={<PlayCircleIcon size={16} weight="duotone" />}
+              onClick={() => setVideoOpen(true)}
+            >
+              Как это работает?
+            </Button>
+          </Stack>
           {formCard}
         </Stack>
       )}
+
+      <IntroVideoModal opened={videoOpen} onClose={() => setVideoOpen(false)} />
 
       <Modal
         opened={!!createdRoom}

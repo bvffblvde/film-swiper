@@ -1,0 +1,39 @@
+.root {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.inner {
+  width: 100%;
+  max-width: 420px;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 32px;
+}
+
+.card {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-xl);
+  padding: 28px;
+}
+
+.iconWrap {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.waitBox {
+  text-align: center;
+  padding: 12px;
+  background: var(--c-elevated);
+  border-radius: var(--r-md);
+}
