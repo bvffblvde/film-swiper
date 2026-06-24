@@ -15,9 +15,10 @@ async function get<T>(path: string): Promise<T> {
   return data as T;
 }
 
-interface TmdbMovie {
+export interface TmdbMovie {
   id: number;
-  title: string;
+  title?: string;   // movies
+  name?: string;    // TV shows
   overview: string;
   poster_path: string | null;
   vote_average: number;
@@ -48,6 +49,8 @@ interface TmdbCastMember {
 
 let genreCache: Record<number, string> = {};
 let genreListCache: GenreItem[] = [];
+let tvGenreCache: Record<number, string> = {};
+let tvGenreListCache: GenreItem[] = [];
 
 export async function fetchGenres(): Promise<Record<number, string>> {
   if (Object.keys(genreCache).length > 0) return genreCache;
@@ -66,8 +69,34 @@ export async function fetchGenreList(): Promise<GenreItem[]> {
   return genreListCache;
 }
 
+export async function fetchTvGenres(): Promise<Record<number, string>> {
+  if (Object.keys(tvGenreCache).length > 0) return tvGenreCache;
+  const data = await get<{ genres: { id: number; name: string }[] }>('/genre/tv/list');
+  tvGenreCache = {};
+  tvGenreListCache = [];
+  for (const g of data.genres) {
+    tvGenreCache[g.id] = g.name;
+    tvGenreListCache.push({ id: g.id, name: g.name });
+  }
+  return tvGenreCache;
+}
+
+export async function fetchTvGenreList(): Promise<GenreItem[]> {
+  await fetchTvGenres();
+  return tvGenreListCache;
+}
+
 export async function fetchMovieCredits(movieId: number): Promise<string[]> {
   const data = await get<{ cast: TmdbCastMember[] }>(`/movie/${movieId}/credits`);
+  if (!Array.isArray(data.cast)) return [];
+  return data.cast
+    .filter((m) => m.known_for_department === 'Acting')
+    .slice(0, 3)
+    .map((m) => m.name);
+}
+
+export async function fetchTvCredits(tvId: number): Promise<string[]> {
+  const data = await get<{ cast: TmdbCastMember[] }>(`/tv/${tvId}/credits`);
   if (!Array.isArray(data.cast)) return [];
   return data.cast
     .filter((m) => m.known_for_department === 'Acting')
@@ -81,30 +110,48 @@ export async function fetchMovies(
   minRating?: number,
   yearFrom?: number,
   yearTo?: number,
-  excludeLanguages?: string[]
-): Promise<{ movies: TmdbMovie[]; totalPages: number }> {
+  excludeLanguages?: string[],
+  mediaType?: 'movie' | 'tv' | 'anime'
+): Promise<{ movies: TmdbMovie[]; totalPages: number; isTV: boolean }> {
+  const isTV = mediaType === 'tv' || mediaType === 'anime';
   let path: string;
-  const hasFilter = genreId || minRating || yearFrom || yearTo;
-  if (hasFilter) {
+
+  if (isTV) {
     const params = new URLSearchParams({ page: String(page), sort_by: 'popularity.desc', 'vote_count.gte': '30' });
-    if (genreId) params.set('with_genres', String(genreId));
+    if (mediaType === 'anime') {
+      params.set('with_genres', '16');
+      params.set('with_original_language', 'ja');
+    } else {
+      if (genreId) params.set('with_genres', String(genreId));
+    }
     if (minRating) params.set('vote_average.gte', String(minRating));
-    if (yearFrom) params.set('primary_release_date.gte', `${yearFrom}-01-01`);
-    if (yearTo) params.set('primary_release_date.lte', `${yearTo}-12-31`);
-    path = `/discover/movie?${params}`;
+    if (yearFrom) params.set('first_air_date.gte', `${yearFrom}-01-01`);
+    if (yearTo) params.set('first_air_date.lte', `${yearTo}-12-31`);
+    path = `/discover/tv?${params}`;
   } else {
-    path = `/movie/popular?page=${page}`;
+    const hasFilter = genreId || minRating || yearFrom || yearTo;
+    if (hasFilter) {
+      const params = new URLSearchParams({ page: String(page), sort_by: 'popularity.desc', 'vote_count.gte': '30' });
+      if (genreId) params.set('with_genres', String(genreId));
+      if (minRating) params.set('vote_average.gte', String(minRating));
+      if (yearFrom) params.set('primary_release_date.gte', `${yearFrom}-01-01`);
+      if (yearTo) params.set('primary_release_date.lte', `${yearTo}-12-31`);
+      path = `/discover/movie?${params}`;
+    } else {
+      path = `/movie/popular?page=${page}`;
+    }
   }
+
   const data = await get<{ results: TmdbMovie[]; total_pages: number }>(path);
   if (!Array.isArray(data.results)) {
     console.error('TMDB unexpected response:', JSON.stringify(data).slice(0, 300));
-    return { movies: [], totalPages: 0 };
+    return { movies: [], totalPages: 0, isTV };
   }
   const excluded = new Set(excludeLanguages ?? []);
   const movies = excluded.size > 0
     ? data.results.filter((m) => !excluded.has(m.original_language))
     : data.results;
-  return { movies, totalPages: data.total_pages };
+  return { movies, totalPages: data.total_pages, isTV };
 }
 
 export async function fetchMoviesWithFilters(
@@ -174,7 +221,7 @@ export async function fetchSampleMovies(
   if (!Array.isArray(data.results)) return [];
   return data.results.map((m) => ({
     id: m.id,
-    title: m.title,
+    title: m.title || m.name || '',
     posterPath: m.poster_path,
     rating: Math.round(m.vote_average * 10) / 10,
   }));

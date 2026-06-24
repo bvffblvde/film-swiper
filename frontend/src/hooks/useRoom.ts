@@ -24,6 +24,7 @@ export type LobbySettings = {
   yearFrom: number;
   yearTo: number;
   excludedCountries: string[];
+  mediaType: 'movie' | 'tv' | 'anime';
 };
 
 export function useRoom(roomId: string) {
@@ -46,6 +47,7 @@ export function useRoom(roomId: string) {
     yearFrom: 0,
     yearTo: 0,
     excludedCountries: [],
+    mediaType: 'movie',
   });
 
   const socketIdRef = useRef<string>('');
@@ -185,6 +187,7 @@ export function useRoom(roomId: string) {
       yearFrom?: number;
       yearTo?: number;
       excludedCountries?: string[];
+      mediaType?: 'movie' | 'tv' | 'anime';
     };
   }) {
     getSocket().emit('update-settings', { roomId, ...settings });

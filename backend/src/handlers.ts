@@ -15,7 +15,9 @@ import {
 import {
   fetchMovies,
   fetchGenres,
+  fetchTvGenres,
   fetchMovieCredits,
+  fetchTvCredits,
   fetchMoviesWithFilters,
   fetchMovieWithCredits,
 } from './tmdb';
@@ -61,18 +63,19 @@ function shuffle<T>(arr: T[]): T[] {
 }
 
 async function buildMoviesFromRaw(
-  raw: { id: number; title: string; overview: string; poster_path: string | null; vote_average: number; genre_ids: number[] }[],
-  genreMap: Record<number, string>
+  raw: { id: number; title?: string; name?: string; overview: string; poster_path: string | null; vote_average: number; genre_ids: number[] }[],
+  genreMap: Record<number, string>,
+  isTV = false
 ): Promise<Movie[]> {
   return Promise.all(
     raw.map(async (m) => ({
       id: m.id,
-      title: m.title,
+      title: m.title || m.name || '',
       overview: m.overview,
       posterPath: m.poster_path,
       rating: Math.round(m.vote_average * 10) / 10,
       genres: m.genre_ids.map((id) => genreMap[id]).filter(Boolean),
-      actors: await fetchMovieCredits(m.id).catch(() => []),
+      actors: await (isTV ? fetchTvCredits(m.id) : fetchMovieCredits(m.id)).catch(() => []),
     }))
   );
 }
@@ -83,14 +86,16 @@ async function loadClassicMovies(
   minRating?: number,
   yearFrom?: number,
   yearTo?: number,
-  excludedCountries?: string[]
+  excludedCountries?: string[],
+  mediaType?: 'movie' | 'tv' | 'anime'
 ): Promise<Movie[]> {
   const excludeLanguages = getExcludeLanguages(excludedCountries);
-  const [{ movies: raw }, genreMap] = await Promise.all([
-    fetchMovies(page, genreId, minRating, yearFrom, yearTo, excludeLanguages),
-    fetchGenres(),
+  const isTV = mediaType === 'tv' || mediaType === 'anime';
+  const [{ movies: raw, isTV: fetchedAsTV }, genreMap] = await Promise.all([
+    fetchMovies(page, genreId, minRating, yearFrom, yearTo, excludeLanguages, mediaType),
+    isTV ? fetchTvGenres() : fetchGenres(),
   ]);
-  return buildMoviesFromRaw(raw, genreMap);
+  return buildMoviesFromRaw(raw, genreMap, fetchedAsTV);
 }
 
 async function loadPreferenceMovies(
@@ -190,7 +195,7 @@ export function registerHandlers(io: Server, socket: Socket) {
       roomId: string;
       matchThreshold: number;
       requiredMatches?: number;
-      filters: { genreId?: number; minRating?: number; yearFrom?: number; yearTo?: number; excludedCountries?: string[] };
+      filters: { genreId?: number; minRating?: number; yearFrom?: number; yearTo?: number; excludedCountries?: string[]; mediaType?: 'movie' | 'tv' | 'anime' };
     }) => {
       const room = getRoom(roomId);
       if (!room || room.hostSocketId !== socket.id) return;
@@ -265,7 +270,8 @@ export function registerHandlers(io: Server, socket: Socket) {
           room.filters.minRating,
           room.filters.yearFrom,
           room.filters.yearTo,
-          room.filters.excludedCountries
+          room.filters.excludedCountries,
+          room.filters.mediaType
         );
       }
 
@@ -324,7 +330,8 @@ export function registerHandlers(io: Server, socket: Socket) {
           room.filters.minRating,
           room.filters.yearFrom,
           room.filters.yearTo,
-          room.filters.excludedCountries
+          room.filters.excludedCountries,
+          room.filters.mediaType
         );
       }
 

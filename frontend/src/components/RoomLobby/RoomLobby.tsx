@@ -69,6 +69,7 @@ type Settings = {
   yearFrom: number;
   yearTo: number;
   excludedCountries: string[];
+  mediaType: 'movie' | 'tv' | 'anime';
 };
 
 interface Props {
@@ -80,7 +81,7 @@ interface Props {
   onSettingsChange: (settings: {
     matchThreshold: number;
     requiredMatches: number;
-    filters: { genreId?: number; minRating?: number; yearFrom?: number; yearTo?: number; excludedCountries?: string[] };
+    filters: { genreId?: number; minRating?: number; yearFrom?: number; yearTo?: number; excludedCountries?: string[]; mediaType?: 'movie' | 'tv' | 'anime' };
   }) => void;
   settings: Settings;
   onSettingsLocal: (s: Settings) => void;
@@ -102,16 +103,20 @@ export function RoomLobby({
   const currentYear = new Date().getFullYear();
 
   useEffect(() => {
+    if (settings.mediaType === 'anime') return;
     setGenresLoading(true);
-    fetch(`${API}/api/genres`)
+    const type = settings.mediaType === 'tv' ? 'tv' : 'movie';
+    fetch(`${API}/api/genres?type=${type}`)
       .then((r) => r.json())
       .then((g: GenreItem[]) => setGenres(g))
       .catch(() => {})
       .finally(() => setGenresLoading(false));
-  }, []);
+  }, [settings.mediaType]);
 
   function handleChange(key: string, value: unknown) {
     const next = { ...settings, [key]: value } as Settings;
+    // Reset genre when switching media type
+    if (key === 'mediaType') next.genreId = '';
     onSettingsLocal(next);
     onSettingsChange({
       matchThreshold: next.matchThreshold,
@@ -122,6 +127,7 @@ export function RoomLobby({
         yearFrom: next.yearFrom > 0 ? next.yearFrom : undefined,
         yearTo: next.yearTo > 0 ? next.yearTo : undefined,
         excludedCountries: next.excludedCountries.length > 0 ? next.excludedCountries : undefined,
+        mediaType: next.mediaType !== 'movie' ? next.mediaType : undefined,
       },
     });
   }
@@ -198,7 +204,29 @@ export function RoomLobby({
       <Text size="sm" c="dimmed" fw={500} mb={20}>Настройки сессии</Text>
       <Stack gap={0}>
 
-        {/* Genre */}
+        {/* Media type */}
+        <Box pb={20}>
+          <Text size="xs" c="dimmed" fw={500} mb={10}>Что смотрим</Text>
+          <SegmentedControl
+            fullWidth
+            value={settings.mediaType}
+            onChange={(v) => handleChange('mediaType', v)}
+            data={[
+              { label: 'Фильм', value: 'movie' },
+              { label: 'Сериал', value: 'tv' },
+              { label: 'Аниме', value: 'anime' },
+            ]}
+            styles={{
+              root: { background: '#25262b', border: '1px solid #373A40' },
+              label: { fontSize: '13px' },
+            }}
+          />
+        </Box>
+
+        <Divider color="#2C2E33" mb={20} />
+
+        {/* Genre — hidden for anime since it's implicit */}
+        {settings.mediaType !== 'anime' && (
         <Box pb={20}>
           {genresLoading ? (
             <Group gap={8}><Loader size={14} color="violet" /><Text size="sm" c="dimmed">Загрузка жанров...</Text></Group>
@@ -216,8 +244,9 @@ export function RoomLobby({
             />
           )}
         </Box>
+        )}
 
-        <Divider color="#2C2E33" mb={20} />
+        {settings.mediaType !== 'anime' && <Divider color="#2C2E33" mb={20} />}
 
         {/* Year range */}
         <Box pb={20}>

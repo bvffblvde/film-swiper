@@ -4,7 +4,7 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
 import { registerHandlers } from './handlers';
-import { fetchGenreList, searchActors, fetchSampleMovies } from './tmdb';
+import { fetchGenreList, fetchTvGenreList, searchActors, fetchSampleMovies } from './tmdb';
 
 const app = express();
 const httpServer = createServer(app);
@@ -25,9 +25,10 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok' });
 });
 
-app.get('/api/genres', async (_req, res) => {
+app.get('/api/genres', async (req, res) => {
   try {
-    const genres = await fetchGenreList();
+    const type = String(req.query.type || 'movie');
+    const genres = type === 'tv' ? await fetchTvGenreList() : await fetchGenreList();
     res.json(genres);
   } catch (err) {
     console.error('GET /api/genres error:', err);

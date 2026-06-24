@@ -60,6 +60,7 @@ export interface Room {
     yearFrom?: number;
     yearTo?: number;
     excludedCountries?: string[];
+    mediaType?: 'movie' | 'tv' | 'anime';
   };
   mode: 'classic' | 'preference';
   wizardStarted: boolean;

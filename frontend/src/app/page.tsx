@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   Box,
   Button,
@@ -48,13 +48,6 @@ export default function HomePage() {
   const [loading, setLoading] = useState<'create' | 'join' | null>(null);
   const [createdRoom, setCreatedRoom] = useState<{ id: string; url: string } | null>(null);
   const [videoOpen, setVideoOpen] = useState(false);
-
-  useEffect(() => {
-    if (!localStorage.getItem('fs_intro_seen')) {
-      setVideoOpen(true);
-      localStorage.setItem('fs_intro_seen', '1');
-    }
-  }, []);
 
   function getOrConnectSocket() {
     const socket = getSocket();

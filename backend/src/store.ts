@@ -55,7 +55,7 @@ export interface Room {
   status: 'lobby' | 'swiping' | 'ended';
   matchThreshold: number;
   requiredMatches: number;
-  filters: { genreId?: number; minRating?: number; yearFrom?: number; yearTo?: number; excludedCountries?: string[] };
+  filters: { genreId?: number; minRating?: number; yearFrom?: number; yearTo?: number; excludedCountries?: string[]; mediaType?: 'movie' | 'tv' | 'anime' };
   mode: 'classic' | 'preference';
   wizardStarted: boolean;
   preferences: Record<string, UserPreferences>;
